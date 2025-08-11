@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo, useCallback } from "react"
+import dynamic from "next/dynamic"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -35,21 +36,71 @@ import { AgentComparisonModal } from "@/components/agent-comparison-modal"
 import { ComparisonIndicator } from "@/components/comparison-indicator"
 import Link from "next/link"
 import { StarField } from "@/components/star-field"
-import dynamic from "next/dynamic"
+import React from "react"
 
-// Dynamically import Spline for client-only rendering with a loading fallback
-const LazySpline = dynamic(() => import("@splinetool/react-spline").then((m) => m.Spline), {
-  ssr: false,
-  loading: () => (
-    <div className="fixed inset-0 bg-gradient-to-br from-purple-900/20 via-black to-violet-900/20 flex items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
-      <span className="ml-4 text-white/70 font-medium">Loading 3D Environment...</span>
+class SplineErrorBoundary extends React.Component<
+  { children: React.ReactNode; fallback: React.ReactNode },
+  { hasError: boolean }
+> {
+  constructor(props: any) {
+    super(props)
+    this.state = { hasError: false }
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  componentDidCatch(error: any, errorInfo: any) {
+    console.log("Spline error:", error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback
+    }
+
+    return this.props.children
+  }
+}
+
+const SplineBackground = () => {
+  const [hasError, setHasError] = useState(false)
+
+  const Spline = dynamic(() => import("@splinetool/react-spline"), {
+    ssr: false,
+    loading: () => (
+      <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-black to-violet-900">
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-12 h-12 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      </div>
+    ),
+  })
+
+  const FallbackBackground = () => (
+    <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-black to-violet-900">
+      <div className="absolute inset-0 opacity-30">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/20 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-3/4 right-1/4 w-80 h-80 bg-violet-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl animate-pulse delay-2000"></div>
+      </div>
     </div>
-  ),
-})
+  )
 
-function SplineBackground({ scene }: { scene: string }) {
-  return <LazySpline scene={scene} style={{ width: "100%", height: "100%" }} />
+  if (hasError) {
+    return <FallbackBackground />
+  }
+
+  return (
+    <SplineErrorBoundary fallback={<FallbackBackground />}>
+      <Spline
+        scene="https://prod.spline.design/Uamfp-umcxkVHdXw/scene.splinecode"
+        style={{ width: "100%", height: "100%" }}
+        onError={() => setHasError(true)}
+      />
+    </SplineErrorBoundary>
+  )
 }
 
 // Enhanced mock agent data (empty for now)
@@ -134,9 +185,9 @@ export function AgentsPage() {
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* 3D Background */}
       <div className="fixed inset-0 w-full h-full z-0">
-        <SplineBackground scene="https://prod.spline.design/ddziQQCLOwzEev9x/scene.splinecode" />
+        <SplineBackground />
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/30 via-black/50 to-violet-900/30" />
       </div>
 
       {/* Moving Stars */}

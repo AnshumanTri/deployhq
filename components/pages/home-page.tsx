@@ -1,572 +1,222 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { Bot, ArrowRight } from "lucide-react"
-import Link from "next/link"
-import { useAuth } from "@/lib/auth-context"
-import { useEffect, useState, useCallback, memo } from "react"
+import { useState, useEffect } from "react"
 import dynamic from "next/dynamic"
-import React from "react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { ArrowRight, Users, Zap, Shield, Rocket, Play, BarChart3, Globe, Sparkles } from "lucide-react"
+import Link from "next/link"
+import { StarField } from "@/components/star-field"
 
-// Spline Error Boundary Component
-class SplineErrorBoundary extends React.Component<
-  { onError: () => void; children: React.ReactNode },
-  { hasError: boolean }
-> {
-  state = { hasError: false }
-
-  static getDerivedStateFromError() {
-    return { hasError: true }
-  }
-
-  componentDidCatch() {
-    this.props.onError()
-  }
-
-  render() {
-    return this.state.hasError ? null : this.props.children
-  }
-}
-
-// Dynamically import Spline with loading optimization
-const LazySpline = dynamic(() => import("@splinetool/react-spline").then((m) => m.Spline), {
+const Spline = dynamic(() => import("@splinetool/react-spline"), {
   ssr: false,
   loading: () => (
-    <div className="flex items-center justify-center bg-black w-full h-full">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+    <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-black to-violet-900 animate-pulse">
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
     </div>
   ),
 })
 
-// Spline Wrapper Component (integrated)
-const SplineWrapper = memo(({ scene, className }: { scene: string; className?: string }) => {
-  const [errored, setErrored] = useState(false)
+export function HomePage() {
+  const [scrollY, setScrollY] = useState(0)
+  const [splineError, setSplineError] = useState(false)
 
-  if (!scene || errored) {
-    return (
-      <div className={`flex items-center justify-center bg-black ${className}`}>
-        <img
-          src="/placeholder.svg?height=600&width=800&text=3D+Preview+Unavailable"
-          alt="3D preview unavailable"
-          className="object-contain opacity-40"
-          loading="lazy"
-        />
+  useEffect(() => {
+    const handleScroll = () => setScrollY(window.scrollY)
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  const FallbackBackground = () => (
+    <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-black to-violet-900">
+      <div className="absolute inset-0 opacity-40">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500/30 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute top-3/4 right-1/4 w-80 h-80 bg-violet-500/30 rounded-full blur-3xl animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-indigo-500/30 rounded-full blur-3xl animate-pulse delay-2000"></div>
       </div>
-    )
+    </div>
+  )
+
+  const handleSplineError = (error: any) => {
+    console.warn("Spline failed to load:", error)
+    setSplineError(true)
   }
 
   return (
-    <SplineErrorBoundary onError={() => setErrored(true)}>
-      <div className={className}>
-        <LazySpline
-          scene={scene}
-          style={{ width: "100%", height: "100%" }}
-          onLoad={() => {
-            // Optional: Add any post-load optimizations
-          }}
-        />
+    <div className="min-h-screen relative overflow-hidden">
+      <div className="fixed inset-0 w-full h-full z-0">
+        {splineError ? (
+          <FallbackBackground />
+        ) : (
+          <Spline
+            scene="https://prod.spline.design/6Wq1Q7YGyM-iab9i/scene.splinecode"
+            style={{ width: "100%", height: "100%" }}
+            onError={handleSplineError}
+            onLoad={() => console.log("Spline scene loaded successfully")}
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-900/20 via-black/40 to-violet-900/20" />
       </div>
-    </SplineErrorBoundary>
-  )
-})
 
-SplineWrapper.displayName = "SplineWrapper"
+      {/* Moving Stars */}
+      <StarField className="z-5" count={100} />
 
-export function HomePage() {
-  const { isAuthenticated } = useAuth()
-  const [scrollY, setScrollY] = useState(0)
+      {/* Dark Overlay */}
+      <div className="fixed inset-0 bg-black/30 backdrop-blur-[0.5px] z-10" />
 
-  const handleScroll = useCallback(() => {
-    setScrollY(window.scrollY)
-  }, [])
-
-  useEffect(() => {
-    let ticking = false
-    const throttledHandleScroll = () => {
-      if (!ticking) {
-        requestAnimationFrame(() => {
-          handleScroll()
-          ticking = false
-        })
-        ticking = true
-      }
-    }
-    window.addEventListener("scroll", throttledHandleScroll, { passive: true })
-    return () => window.removeEventListener("scroll", throttledHandleScroll)
-  }, [handleScroll])
-
-  // Calculate scroll-based intensities for each section (optimized)
-  const heroIntensity = Math.max(0, Math.min(1, 1 - scrollY / window.innerHeight))
-  const empowerStart = window.innerHeight
-  const empowerEnd = empowerStart + window.innerHeight
-  const empowerIntensity = Math.max(
-    0,
-    Math.min(
-      1,
-      scrollY > empowerStart
-        ? scrollY < empowerEnd
-          ? 1 - Math.abs(scrollY - (empowerStart + empowerEnd) / 2) / (window.innerHeight / 2)
-          : Math.max(0, 1 - (scrollY - empowerEnd) / (window.innerHeight / 2))
-        : 0,
-    ),
-  )
-
-  const simplifyStart = empowerEnd
-  const simplifyEnd = simplifyStart + window.innerHeight
-  const simplifyIntensity = Math.max(
-    0,
-    Math.min(
-      1,
-      scrollY > simplifyStart
-        ? scrollY < simplifyEnd
-          ? 1 - Math.abs(scrollY - (simplifyStart + simplifyEnd) / 2) / (window.innerHeight / 2)
-          : Math.max(0, 1 - (scrollY - simplifyEnd) / (window.innerHeight / 2))
-        : 0,
-    ),
-  )
-
-  return (
-    <div className="flex flex-col relative overflow-hidden">
-      {/* Hero Section */}
-      <section className="relative h-screen flex items-center bg-black text-white overflow-hidden z-10">
-        {/* Animated Background */}
-        <div className="absolute inset-0 animate-gradient-shift opacity-90">
-          <div className="absolute inset-0 bg-gradient-to-br from-white/12 via-black/60 to-white/8"></div>
-          <div className="absolute inset-0 bg-gradient-to-tl from-black/80 via-white/6 to-black/70"></div>
-        </div>
-
-        {/* Moving Stars */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {[...Array(15)].map((_, i) => (
-            <div
-              key={`star-${i}`}
-              className="absolute animate-star-move"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${i * 2}s`,
-                animationDuration: `${20 + Math.random() * 10}s`,
-              }}
-            >
-              <div className="w-1 h-1 bg-white/20 rounded-full animate-star-twinkle" />
-            </div>
-          ))}
-        </div>
-
-        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-black/40"></div>
-
-        <div className="container mx-auto px-4 relative z-20 h-full">
-          <div className="grid lg:grid-cols-2 gap-8 h-full items-center">
-            <div className="space-y-8">
-              <div>
-                <h1 className="text-hero mb-6 text-white leading-tight bg-gradient-to-r from-white via-white to-gray-200 bg-clip-text text-transparent">
-                  Your AI Command Center.
-                </h1>
-                <p className="text-body-large text-gray-300 mb-8 max-w-lg leading-relaxed">
-                  Empower your business with AI agents tailored to your needs. Your trusted command center for agentic
-                  AI solutions.
-                </p>
+      {/* Main Content */}
+      <div className="relative z-20 min-h-screen text-white">
+        {/* Hero Section */}
+        <section className="min-h-screen flex items-center justify-center px-6 relative">
+          <div className="container mx-auto text-center">
+            <div className="max-w-6xl mx-auto">
+              <div className="mb-8">
+                <Badge className="bg-gradient-to-r from-purple-500/30 to-violet-500/30 backdrop-blur-md text-purple-200 border-white/30 px-6 py-3 text-lg font-semibold shadow-2xl">
+                  <Sparkles className="h-5 w-5 mr-2" />
+                  Next-Generation AI Platform
+                </Badge>
               </div>
 
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  size="lg"
-                  className="text-button-large px-8 py-4 bg-gradient-to-r from-white to-gray-100 text-black hover:from-gray-100 hover:to-white transform hover:scale-105 transition-all duration-200"
-                  asChild
-                >
-                  <Link href="/agents">
-                    Explore AI Agents
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
-                </Button>
-                {!isAuthenticated && (
+              <h1 className="text-hero mb-8 leading-tight">
+                <span className="bg-gradient-to-r from-purple-300 via-violet-400 to-purple-500 bg-clip-text text-transparent">
+                  Deploy AI Agents
+                </span>
+                <br />
+                <span className="text-white">That Actually Work</span>
+              </h1>
+
+              <p className="text-body-large text-white/90 max-w-4xl mx-auto mb-16 leading-relaxed">
+                Build, deploy, and scale intelligent AI agents with our powerful platform. From customer support to
+                complex automation, create agents that understand your business and deliver real results.
+              </p>
+
+              <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-20">
+                <Link href="/builder">
                   <Button
                     size="lg"
-                    variant="outline"
-                    className="border-white text-white hover:bg-white hover:text-black px-8 py-4 transform hover:scale-105 transition-all duration-200 bg-transparent"
-                    asChild
+                    className="bg-gradient-to-r from-purple-600 to-violet-700 hover:from-purple-700 hover:to-violet-800 text-white font-bold px-12 py-6 text-xl rounded-2xl transition-all duration-200 transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/25 shadow-2xl"
                   >
-                    <Link href="/auth/signup">Get Started</Link>
+                    <Rocket className="mr-3 h-6 w-6" />
+                    Start Building
+                    <ArrowRight className="ml-3 h-6 w-6" />
                   </Button>
-                )}
-              </div>
-            </div>
-
-            <div className="relative h-full min-h-[600px]">
-              <SplineWrapper
-                scene="https://prod.spline.design/hb7JeUFmtIdBjQzS/scene.splinecode"
-                className="w-full h-full min-h-[600px]"
-              />
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Empower Section */}
-      <section className="relative py-20 px-4 bg-black text-white z-10 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-white/8 via-transparent to-white/4"></div>
-
-        {/* Moving Stars */}
-        <div className="absolute inset-0 pointer-events-none overflow-hidden">
-          {[...Array(10)].map((_, i) => (
-            <div
-              key={`empower-star-${i}`}
-              className="absolute animate-star-move"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${i * 3}s`,
-                animationDuration: `${25 + Math.random() * 10}s`,
-              }}
-            >
-              <div className="w-0.5 h-0.5 bg-white/15 rounded-full animate-star-twinkle" />
-            </div>
-          ))}
-        </div>
-
-        <div className="container mx-auto relative z-10">
-          <div className="mb-12">
-            <p className="text-overline text-gray-400 mb-4">Empower</p>
-            <h2 className="text-heading-1 mb-6 bg-gradient-to-r from-white via-white to-gray-200 bg-clip-text text-transparent">
-              Unlock the Future of AI Agents
-            </h2>
-            <p className="text-body-large text-gray-300 max-w-3xl leading-relaxed">
-              Discover, test, and deploy AI agents designed for your business needs. Our platform simplifies the
-              process, allowing you to find the perfect solution for marketing, sales, operations, and more.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-8 mb-12">
-            <div className="space-y-6">
-              <div className="aspect-[4/3] rounded-lg overflow-hidden transform hover:scale-105 transition-all duration-300">
-                <img
-                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/working%20together-YBK9e5Gzj8cOeogTEe4KirqV8V9htL.webp"
-                  alt="Team collaboration"
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-              <div>
-                <h3 className="text-heading-3 mb-3 bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
-                  Explore Tailored AI Solutions
-                </h3>
-                <p className="text-body text-gray-400 leading-relaxed">
-                  Browse our extensive directory to find agents that fit your specific use cases.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <div className="aspect-[4/3] rounded-lg overflow-hidden transform hover:scale-105 transition-all duration-300">
-                <img
-                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/freepik__the-style-is-candid-image-photography-with-natural__47085-ivgAZCuNTejEt8bdiy3E4p9qKsCjAb.jpeg"
-                  alt="Professional testing"
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-              <div>
-                <h3 className="text-heading-3 mb-3 bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
-                  Test Agents in Real-Time
-                </h3>
-                <p className="text-body text-gray-400 leading-relaxed">
-                  Experience agents live before making a commitment.
-                </p>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <div className="aspect-[4/3] rounded-full overflow-hidden transform hover:scale-105 transition-all duration-300">
-                <img
-                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/wt%202-w3zjwbCLPEZIJaPqumMek7Mkai6eb6.webp"
-                  alt="Performance tracking"
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
-              </div>
-              <div>
-                <h3 className="text-heading-3 mb-3 bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
-                  Deploy with Confidence
-                </h3>
-                <p className="text-body text-gray-400 leading-relaxed">
-                  Monitor usage and analytics to ensure optimal performance.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-4">
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-white text-white hover:bg-white hover:text-black px-8 py-3 bg-transparent"
-              asChild
-            >
-              <Link href="/agents">Learn More</Link>
-            </Button>
-            {!isAuthenticated && (
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-white to-gray-100 text-black hover:from-gray-100 hover:to-white px-8 py-3"
-                asChild
-              >
-                <Link href="/auth/signup">
-                  Sign Up
-                  <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
-              </Button>
-            )}
-          </div>
-        </div>
-      </section>
 
-      {/* Simplify Section */}
-      <section className="relative py-20 px-4 bg-black text-white z-10 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-white/6 via-transparent to-white/8"></div>
-
-        <div className="container mx-auto relative z-10">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <p className="text-overline text-gray-400 mb-4">Simplify</p>
-              <h2 className="text-heading-1 mb-6 bg-gradient-to-r from-white via-white to-gray-200 bg-clip-text text-transparent">
-                AI Deployment Without the Technical Overhead
-              </h2>
-              <p className="text-body-large text-gray-300 mb-12 leading-relaxed">
-                DeployHQ simplifies the AI deployment process, making it accessible for everyone. Experience seamless
-                integration and management without the need for technical expertise.
-              </p>
-
-              <div className="grid md:grid-cols-2 gap-8 mb-12">
-                <div>
-                  <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mb-4">
-                    <div className="w-6 h-6 border-2 border-white transform rotate-45"></div>
-                  </div>
-                  <h3 className="text-heading-4 mb-3 bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
-                    For Builders
-                  </h3>
-                  <p className="text-body text-gray-400 leading-relaxed">
-                    Easily submit and manage your AI agents with insightful analytics.
-                  </p>
-                </div>
-
-                <div>
-                  <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center mb-4">
-                    <div className="w-6 h-6 border-2 border-white transform rotate-45"></div>
-                  </div>
-                  <h3 className="text-heading-4 mb-3 bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
-                    For Customers
-                  </h3>
-                  <p className="text-body text-gray-400 leading-relaxed">
-                    Explore, test, and compare AI agents effortlessly.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  className="border-white text-white hover:bg-white hover:text-black px-8 py-3 bg-transparent"
-                  asChild
-                >
-                  <Link href="/builder">Start Building</Link>
-                </Button>
-                <Button
-                  size="lg"
-                  className="bg-gradient-to-r from-white to-gray-100 text-black hover:from-gray-100 hover:to-white px-8 py-3"
-                  asChild
-                >
-                  <Link href="/agents">
+                <Link href="/agents">
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="bg-black/30 backdrop-blur-md border-white/30 text-white hover:bg-purple-900/40 hover:border-purple-300/60 hover:text-white font-bold px-12 py-6 text-xl rounded-2xl transition-all duration-200 transform hover:scale-105 shadow-2xl"
+                  >
+                    <Play className="mr-3 h-6 w-6" />
                     Explore Agents
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
+                  </Button>
+                </Link>
               </div>
-            </div>
 
-            <div>
-              <div className="aspect-[4/3] rounded-lg overflow-hidden transform hover:scale-105 transition-all duration-300">
-                <img
-                  src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/person1.jpg-xgsF5fZoobEmueiEzIyC2uDatD7rMF.jpeg"
-                  alt="Person working with AI tools"
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                />
+              {/* Stats */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+                {[
+                  { icon: Users, label: "Active Users", value: "10,000+" },
+                  { icon: Zap, label: "Agents Deployed", value: "50,000+" },
+                  { icon: Globe, label: "Countries", value: "120+" },
+                ].map((stat, index) => (
+                  <div
+                    key={index}
+                    className="bg-black/20 backdrop-blur-md rounded-2xl p-8 border border-white/10 shadow-2xl"
+                  >
+                    <stat.icon className="h-8 w-8 text-purple-300 mx-auto mb-4" />
+                    <div className="text-heading-3 text-white mb-2">{stat.value}</div>
+                    <div className="text-body text-white/70">{stat.label}</div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA Section */}
-      <section className="relative py-20 px-4 bg-black text-white z-10 overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-30"
-          style={{
-            backgroundImage: `url('/images/robot-cta-bg.png')`,
-            backgroundSize: "contain",
-            backgroundPosition: "center right",
-            backgroundRepeat: "no-repeat",
-          }}
-        />
-
-        <div className="absolute inset-0 bg-gradient-to-l from-white/10 via-black/80 to-black/90"></div>
-
-        <div className="container mx-auto text-center relative z-10">
-          <h2 className="text-heading-2 mb-4 bg-gradient-to-r from-white via-white to-gray-200 bg-clip-text text-transparent">
-            Ready to Deploy AI Agents?
-          </h2>
-          <p className="text-body-large mb-8 text-gray-300 max-w-2xl mx-auto">
-            Join thousands of businesses already using DeployHQ to automate their workflows with AI
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-white to-gray-100 text-black hover:from-gray-100 hover:to-white px-8 py-4"
-              asChild
-            >
-              <Link href="/agents">Browse Agents</Link>
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-white text-white hover:bg-white hover:text-black px-8 py-4 bg-transparent"
-              asChild
-            >
-              <Link href="/builder">Become a Builder</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="relative py-12 px-4 border-t border-gray-800 bg-black z-10">
-        <div className="container mx-auto">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center space-x-2 mb-4">
-                <Bot className="h-6 w-6 text-white" />
-                <span className="text-heading-4 bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
-                  DeployHQ
+        {/* Features Section */}
+        <section className="py-32 px-6 relative">
+          <div className="container mx-auto">
+            <div className="text-center mb-20">
+              <h2 className="text-heading-1 mb-8">
+                <span className="bg-gradient-to-r from-purple-300 via-violet-400 to-purple-500 bg-clip-text text-transparent">
+                  Powerful Features
                 </span>
-              </div>
-              <p className="text-body-small text-gray-400">
-                The trusted marketplace for AI agents. Discover, test, and deploy with confidence.
+              </h2>
+              <p className="text-body-large text-white/80 max-w-3xl mx-auto">
+                Everything you need to build, deploy, and manage AI agents at scale
               </p>
             </div>
-            <div>
-              <h4 className="text-heading-4 mb-4 bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
-                Product
-              </h4>
-              <div className="space-y-2">
-                <Link
-                  href="/agents"
-                  className="text-body-small block text-gray-400 hover:text-white transition-colors duration-200"
+
+            <div className="grid lg:grid-cols-3 gap-10">
+              {[
+                {
+                  icon: Zap,
+                  title: "Lightning Fast",
+                  description:
+                    "Deploy agents in minutes, not hours. Our optimized infrastructure ensures peak performance.",
+                },
+                {
+                  icon: Shield,
+                  title: "Enterprise Security",
+                  description: "Bank-grade security with end-to-end encryption and compliance with industry standards.",
+                },
+                {
+                  icon: BarChart3,
+                  title: "Advanced Analytics",
+                  description: "Deep insights into agent performance with real-time monitoring and detailed reporting.",
+                },
+              ].map((feature, index) => (
+                <Card
+                  key={index}
+                  className="bg-black/30 backdrop-blur-md border-white/20 hover:border-purple-300/60 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 transform hover:scale-105 shadow-2xl"
                 >
-                  AI Agents
-                </Link>
-                <Link
-                  href="/pricing"
-                  className="text-body-small block text-gray-400 hover:text-white transition-colors duration-200"
-                >
-                  Pricing
-                </Link>
-              </div>
+                  <CardContent className="p-10 text-center">
+                    <div className="w-16 h-16 bg-gradient-to-r from-purple-500/30 to-violet-500/30 backdrop-blur-md rounded-2xl flex items-center justify-center mx-auto mb-8 border border-white/30 shadow-lg">
+                      <feature.icon className="h-8 w-8 text-purple-300" />
+                    </div>
+                    <h3 className="text-heading-3 text-white mb-6">{feature.title}</h3>
+                    <p className="text-body text-white/80 leading-relaxed">{feature.description}</p>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-            <div>
-              <h4 className="text-heading-4 mb-4 bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
-                Builders
-              </h4>
-              <div className="space-y-2">
-                <Link
-                  href="/builder"
-                  className="text-body-small block text-gray-400 hover:text-white transition-colors duration-200"
-                >
-                  Builder Portal
-                </Link>
-                <Link
-                  href="/docs"
-                  className="text-body-small block text-gray-400 hover:text-white transition-colors duration-200"
-                >
-                  Documentation
-                </Link>
-              </div>
-            </div>
-            <div>
-              <h4 className="text-heading-4 mb-4 bg-gradient-to-r from-white to-gray-200 bg-clip-text text-transparent">
-                Company
-              </h4>
-              <div className="space-y-2">
-                <Link
-                  href="/about"
-                  className="text-body-small block text-gray-400 hover:text-white transition-colors duration-200"
-                >
-                  About
-                </Link>
-                <Link
-                  href="/contact"
-                  className="text-body-small block text-gray-400 hover:text-white transition-colors duration-200"
-                >
-                  Contact
+          </div>
+        </section>
+
+        {/* CTA Section */}
+        <section className="py-32 px-6 relative">
+          <div className="container mx-auto text-center">
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-black/20 backdrop-blur-md rounded-3xl p-16 border border-white/10 shadow-2xl">
+                <h2 className="text-heading-1 mb-8">
+                  <span className="bg-gradient-to-r from-purple-300 via-violet-400 to-purple-500 bg-clip-text text-transparent">
+                    Ready to Get Started?
+                  </span>
+                </h2>
+                <p className="text-body-large text-white/80 mb-12 max-w-2xl mx-auto">
+                  Join thousands of developers and businesses already using DeployHQ to build the future of AI
+                  automation.
+                </p>
+                <Link href="/auth/signup">
+                  <Button
+                    size="lg"
+                    className="bg-gradient-to-r from-purple-600 to-violet-700 hover:from-purple-700 hover:to-violet-800 text-white font-bold px-16 py-6 text-xl rounded-2xl transition-all duration-200 transform hover:scale-105 hover:shadow-2xl hover:shadow-purple-500/25 shadow-2xl"
+                  >
+                    <Rocket className="mr-3 h-6 w-6" />
+                    Start Free Trial
+                    <ArrowRight className="ml-3 h-6 w-6" />
+                  </Button>
                 </Link>
               </div>
             </div>
           </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center">
-            <p className="text-caption text-gray-400">© 2024 DeployHQ. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
-
-      <style jsx global>{`
-        @keyframes gradient-shift {
-          0%, 100% { 
-            background-position: 0% 50%; 
-          }
-          50% { 
-            background-position: 100% 50%; 
-          }
-        }
-
-        @keyframes star-move {
-          0% {
-            transform: translate3d(-100vw, 100vh, 0);
-            opacity: 0;
-          }
-          10% {
-            opacity: 1;
-          }
-          90% {
-            opacity: 1;
-          }
-          100% {
-            transform: translate3d(100vw, -100vh, 0);
-            opacity: 0;
-          }
-        }
-
-        @keyframes star-twinkle {
-          0%, 100% {
-            opacity: 0.2;
-          }
-          50% {
-            opacity: 0.8;
-          }
-        }
-
-        .animate-gradient-shift {
-          background-size: 200% 200%;
-          animation: gradient-shift 6s ease-in-out infinite;
-        }
-
-        .animate-star-move {
-          animation: star-move linear infinite;
-        }
-
-        .animate-star-twinkle {
-          animation: star-twinkle 3s ease-in-out infinite;
-        }
-      `}</style>
+        </section>
+      </div>
     </div>
   )
 }
