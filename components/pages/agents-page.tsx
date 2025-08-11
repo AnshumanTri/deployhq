@@ -38,7 +38,7 @@ import { StarField } from "@/components/star-field"
 import dynamic from "next/dynamic"
 
 // Dynamically import Spline for client-only rendering with a loading fallback
-const LazySpline = dynamic(() => import("@splinetool/react-spline").then((m) => m.default), {
+const LazySpline = dynamic(() => import("@splinetool/react-spline").then((m) => m.Spline), {
   ssr: false,
   loading: () => (
     <div className="fixed inset-0 bg-gradient-to-br from-purple-900/20 via-black to-violet-900/20 flex items-center justify-center">

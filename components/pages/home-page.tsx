@@ -29,7 +29,7 @@ class SplineErrorBoundary extends React.Component<
 }
 
 // Dynamically import Spline with loading optimization
-const LazySpline = dynamic(() => import("@splinetool/react-spline").then((m) => m.default), {
+const LazySpline = dynamic(() => import("@splinetool/react-spline").then((m) => m.Spline), {
   ssr: false,
   loading: () => (
     <div className="flex items-center justify-center bg-black w-full h-full">
@@ -183,7 +183,7 @@ export function HomePage() {
                   <Button
                     size="lg"
                     variant="outline"
-                    className="border-white text-white hover:bg-white hover:text-black px-8 py-4 transform hover:scale-105 transition-all duration-200"
+                    className="border-white text-white hover:bg-white hover:text-black px-8 py-4 transform hover:scale-105 transition-all duration-200 bg-transparent"
                     asChild
                   >
                     <Link href="/auth/signup">Get Started</Link>
@@ -299,7 +299,7 @@ export function HomePage() {
             <Button
               size="lg"
               variant="outline"
-              className="border-white text-white hover:bg-white hover:text-black px-8 py-3"
+              className="border-white text-white hover:bg-white hover:text-black px-8 py-3 bg-transparent"
               asChild
             >
               <Link href="/agents">Learn More</Link>
@@ -366,7 +366,7 @@ export function HomePage() {
                 <Button
                   size="lg"
                   variant="outline"
-                  className="border-white text-white hover:bg-white hover:text-black px-8 py-3"
+                  className="border-white text-white hover:bg-white hover:text-black px-8 py-3 bg-transparent"
                   asChild
                 >
                   <Link href="/builder">Start Building</Link>
@@ -430,7 +430,7 @@ export function HomePage() {
             <Button
               size="lg"
               variant="outline"
-              className="border-white text-white hover:bg-white hover:text-black px-8 py-4"
+              className="border-white text-white hover:bg-white hover:text-black px-8 py-4 bg-transparent"
               asChild
             >
               <Link href="/builder">Become a Builder</Link>
