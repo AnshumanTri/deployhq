@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo, useCallback, Suspense } from "react"
+import { useState, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
@@ -37,46 +37,25 @@ import Link from "next/link"
 import { StarField } from "@/components/star-field"
 import dynamic from "next/dynamic"
 
-// Create a non-async wrapper for Spline
-const SplineScene = dynamic(
-  () =>
-    import("@splinetool/react-spline/next").then((mod) => {
-      // Return a wrapper component that's not async
-      const SplineComponent = ({ scene }: { scene: string }) => {
-        const Spline = mod.default
-        return <Spline scene={scene} />
-      }
-      return SplineComponent
-    }),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="fixed inset-0 bg-gradient-to-br from-purple-900/20 via-black to-violet-900/20 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
-        <span className="ml-4 text-white/70 font-medium">Loading 3D Environment...</span>
-      </div>
-    ),
-  },
-)
+// Dynamically import Spline for client-only rendering with a loading fallback
+const LazySpline = dynamic(() => import("@splinetool/react-spline").then((m) => m.default), {
+  ssr: false,
+  loading: () => (
+    <div className="fixed inset-0 bg-gradient-to-br from-purple-900/20 via-black to-violet-900/20 flex items-center justify-center">
+      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
+      <span className="ml-4 text-white/70 font-medium">Loading 3D Environment...</span>
+    </div>
+  ),
+})
 
-// Spline Wrapper Component (integrated)
-function SplineWrapperAgents({ scene }: { scene: string }) {
-  return (
-    <Suspense
-      fallback={
-        <div className="fixed inset-0 bg-gradient-to-br from-purple-900/20 via-black to-violet-900/20 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-500"></div>
-          <span className="ml-4 text-white/70 font-medium">Initializing 3D Scene...</span>
-        </div>
-      }
-    >
-      <SplineScene scene={scene} />
-    </Suspense>
-  )
+function SplineBackground({ scene }: { scene: string }) {
+  return <LazySpline scene={scene} style={{ width: "100%", height: "100%" }} />
 }
 
+// Enhanced mock agent data (empty for now)
 const mockAgents: any[] = []
 
+// Categories
 const categories = [
   { id: "all", label: "All Categories", icon: Settings },
   { id: "marketing", label: "Marketing", icon: Megaphone },
@@ -131,9 +110,7 @@ export function AgentsPage() {
   }, [])
 
   const isAgentInComparison = useCallback(
-    (agentId: number) => {
-      return comparisonAgents.some((agent) => agent.id === agentId)
-    },
+    (agentId: number) => comparisonAgents.some((agent) => agent.id === agentId),
     [comparisonAgents],
   )
 
@@ -159,7 +136,7 @@ export function AgentsPage() {
     <div className="min-h-screen relative overflow-hidden">
       {/* 3D Background */}
       <div className="fixed inset-0 w-full h-full z-0">
-        <SplineWrapperAgents scene="https://prod.spline.design/ddziQQCLOwzEev9x/scene.splinecode" />
+        <SplineBackground scene="https://prod.spline.design/ddziQQCLOwzEev9x/scene.splinecode" />
       </div>
 
       {/* Moving Stars */}
@@ -236,7 +213,7 @@ export function AgentsPage() {
           {/* Agents Grid or Empty State */}
           {filteredAgents.length > 0 ? (
             <div className="grid lg:grid-cols-2 xl:grid-cols-3 gap-10">
-              {filteredAgents.map((agent, index) => (
+              {filteredAgents.map((agent) => (
                 <Card
                   key={agent.id}
                   className="group bg-black/40 backdrop-blur-md border-white/20 hover:border-purple-300/60 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/20 overflow-hidden relative transform hover:scale-105 min-h-[400px] shadow-2xl"
